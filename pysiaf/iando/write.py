@@ -32,6 +32,50 @@ for attr in PRD_REQUIRED_ATTRIBUTES_ORDERED:
     index = field_names.index(attr)
     xml_decimal_precision[attr] = SIAF_XML_FIELD_FORMAT['pyformat'][index]
 
+def write_xml_aperture(aperture_collection, aperture_name, ET, root):
+    """
+    This is the XML code that writes out all attributes for a given aperture. It has been
+    abstracted into a function because, in the case of apertures with multiple OSS versions,
+    it must be called in a loop, and there's no reason to maintain separate code paths for
+    the looped and unlooped versions.
+    
+    Parameters
+    ----------
+    aperture_collection : ApertureCollection
+        dictionary of apertures
+    aperture_name : str
+        The name of the current aperture
+    ET : object
+        The XML element tree
+    root : object
+        The level of the ET to which the attributes are being added.
+    """
+    aperture = aperture_collection.apertures[aperture_name]
+    siaf_entry = ET.SubElement(root, 'SiafEntry')
+    for attribute in PRD_REQUIRED_ATTRIBUTES_ORDERED:
+        attribute_value = getattr(aperture_collection.apertures[aperture_name],
+                                  attribute)
+        if attribute_value is None:
+            attribute_text = None
+
+        # NIRSpec special case
+        elif (aperture.AperType in ['TRANSFORM']) and \
+                (attribute in 'XSciRef YSciRef XSciScale YSciScale V2Ref V3Ref'.
+                 split()):
+            attribute_text = '{:{prec}}'.format(attribute_value,
+                                                prec='.15e').strip()
+        elif attribute in FLOAT_ATTRIBUTES:
+            attribute_text = '{:{prec}}'.format(
+                attribute_value, prec=xml_decimal_precision[attribute]).strip()
+        else:
+            attribute_text = str(attribute_value)
+
+        if (not isinstance(attribute_value, str)) and (attribute_text is not None):
+            if np.isnan(attribute_value):
+                attribute_text = None
+
+        ET.SubElement(siaf_entry, attribute).text = attribute_text
+
 
 def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=None,
                     file_format='xml', verbose=True):
@@ -116,32 +160,20 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
             root.append(ET.Comment('pysiaf version {}'.format(__version__)))
 
             for aperture_name in aperture_names:
-
+                # Special case to handle multiple mostly-identical entries with
+                # different OSS versions
                 aperture = aperture_collection.apertures[aperture_name]
-                siaf_entry = ET.SubElement(root, 'SiafEntry')
-                for attribute in PRD_REQUIRED_ATTRIBUTES_ORDERED:
-                    attribute_value = getattr(aperture_collection.apertures[aperture_name],
-                                              attribute)
-                    if attribute_value is None:
-                        attribute_text = None
 
-                    # NIRSpec special case
-                    elif (aperture.AperType in ['TRANSFORM']) and \
-                            (attribute in 'XSciRef YSciRef XSciScale YSciScale V2Ref V3Ref'.
-                             split()):
-                        attribute_text = '{:{prec}}'.format(attribute_value,
-                                                            prec='.15e').strip()
-                    elif attribute in FLOAT_ATTRIBUTES:
-                        attribute_text = '{:{prec}}'.format(
-                            attribute_value, prec=xml_decimal_precision[attribute]).strip()
-                    else:
-                        attribute_text = str(attribute_value)
-
-                    if (not isinstance(attribute_value, str)) and (attribute_text is not None):
-                        if np.isnan(attribute_value):
-                            attribute_text = None
-
-                    ET.SubElement(siaf_entry, attribute).text = attribute_text
+                oss_version = aperture.OSS_Version
+                if isinstance(oss_version, Table):
+                    for row in oss_version:
+                        aperture.V2Ref = float(row['V2Ref'])
+                        aperture.V3Ref = float(row['V3Ref'])
+                        aperture.V3IdlYAngle = float(row['V3IdlYAngle'])
+                        aperture.OSS_Version = row['OSS_Version']
+                        write_xml_aperture(aperture_collection, aperture_name, ET, root)
+                else:
+                    write_xml_aperture(aperture_collection, aperture_name, ET, root)
 
             doc = ET.ElementTree(root)
 
@@ -191,18 +223,35 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                 cell.alignment = Alignment(horizontal='center')
 
             # write aperture values
+            row = header_row_attributes + 1
             for i, aper_name in enumerate(aperture_names):
                 aperture = aperture_collection.apertures[aper_name]
-                # aperture = siaf[aper_name]
 
-                row = i + 1 + header_row_attributes
-                for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
-                    col = j + 1
-                    cell = ws1.cell(column=col, row=row, value="{}".
-                                    format(getattr(aperture, attribute_name)))
-                    if attribute_name not in 'InstrName	AperName DDCName AperType AperShape'.\
-                            split():
-                        cell.alignment = Alignment(horizontal='right')
+                oss_version = aperture.OSS_Version
+
+                if isinstance(oss_version, Table):
+                    for oss_row in oss_version:
+                        aperture.V2Ref = float(row['V2Ref'])
+                        aperture.V3Ref = float(row['V3Ref'])
+                        aperture.V3IdlYAngle = float(row['V3IdlYAngle'])
+                        aperture.OSS_Version = row['OSS_Version']
+                        for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
+                            col = j + 1
+                            cell = ws1.cell(column=col, row=row, value="{}".
+                                            format(getattr(aperture, attribute_name)))
+                            if attribute_name not in 'InstrName	AperName DDCName AperType AperShape'.\
+                                    split():
+                                cell.alignment = Alignment(horizontal='right')
+                        row += 1
+                else:
+                    for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
+                        col = j + 1
+                        cell = ws1.cell(column=col, row=row, value="{}".
+                                        format(getattr(aperture, attribute_name)))
+                        if attribute_name not in 'InstrName	AperName DDCName AperType AperShape'.\
+                                split():
+                            cell.alignment = Alignment(horizontal='right')
+                    row += 1
 
             # adjust column width
             for column_cells in ws1.columns:
@@ -214,10 +263,30 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
 
         else:
             table = Table()
+
             for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
-                data = [getattr(aperture_collection.apertures[aperture_name], attribute_name) for
-                        aperture_name in aperture_names]
-                table.add_column(Column(data=data, name=attribute_name))
+                table.add_column(Column(name=attribute_name))
+
+            for aper_name in aperture_names:
+                aperture = aperture_collection.apertures[aper_name]
+
+                oss_version = aperture.OSS_Version
+
+                if isinstance(oss_version, Table):
+                    for oss_row in oss_version:
+                        aperture.V2Ref = float(row['V2Ref'])
+                        aperture.V3Ref = float(row['V3Ref'])
+                        aperture.V3IdlYAngle = float(row['V3IdlYAngle'])
+                        aperture.OSS_Version = row['OSS_Version']
+                        data = []
+                        for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
+                            data.append(getattr(aperture, attribute_name))
+                        table.add_row(data)
+                else:
+                    data = []
+                    for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
+                        data.append(getattr(aperture, attribute_name))
+                    table.add_row(data)
             table.write(out_filename, format=file_format)
             if verbose:
                 print('Wrote Siaf to {} file {}'.format(file_format, out_filename))

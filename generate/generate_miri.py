@@ -508,6 +508,7 @@ idlvert_attributes = ['XIdlVert{}'.format(i) for i in [1, 2, 3, 4]] + [
 
 aperture_dict = OrderedDict()
 aperture_name_list = siaf_aperture_definitions['AperName'].tolist()
+oss_version_parameters = iando.read.read_siaf_oss_version(instrument)
 
 for aperture_index, AperName in enumerate(aperture_name_list):
     # new aperture to be constructed
@@ -534,7 +535,6 @@ for aperture_index, AperName in enumerate(aperture_name_list):
     aperture.DDCName = 'not set'
     aperture.Comment = None
     aperture.UseAfterDate = '2014-01-01'
-    aperture.OSS_Version = '8.4'
 
     master_aperture_name = 'MIRIM_FULL'
     # process master apertures
@@ -633,7 +633,30 @@ for aperture_index, AperName in enumerate(aperture_name_list):
 
 aperture_dict = OrderedDict(sorted(aperture_dict.items(), key=lambda t: aperture_name_list.index(t[0])))
 
-# third pass to set DDCNames apertures, which depend on other apertures
+# third pass: OSS Version
+for AperName in aperture_name_list:
+    aperture = aperture_dict[AperName]
+
+    if AperName in oss_version_parameters['AperName']:
+        print(f"OSS Filtering by aperture {AperName}")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
+        if aperture_dict[AperName].DDCName in oss['DDCName']:
+            print(f"OSS Filtering by DDCName {aperture_dict[AperName].DDCName}")
+            oss = oss[oss['DDCName'] == aperture_dict[AperName].DDCName]
+    else:
+        print("OSS Using default aperture")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
+
+    if len(oss) == 1:
+        oss = oss["OSS_Version"][0]
+        print(f"OSS: {oss}")
+    else:
+        print(f"OSS:")
+        print(oss)
+
+    aperture.OSS_Version = oss
+
+# fourth pass to set DDCNames apertures, which depend on other apertures
 ddc_siaf_aperture_names = np.array([key for key in ddc_apername_mapping.keys()])
 ddc_v2 = np.array(
     [aperture_dict[aperture_name].V2Ref for aperture_name in ddc_siaf_aperture_names])

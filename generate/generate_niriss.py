@@ -60,6 +60,7 @@ siaf_aperture_definitions = iando.read.read_siaf_aperture_definitions(instrument
 
 aperture_dict = {}
 aperture_name_list = siaf_aperture_definitions['AperName'].tolist()
+oss_version_parameters = iando.read.read_siaf_oss_version(instrument)
 
 for AperName in aperture_name_list:
     # child aperture to be constructed
@@ -139,7 +140,7 @@ for AperName in aperture_name_list:
     aperture.complement()
     aperture.Comment = None
     aperture.UseAfterDate = '2014-01-01'
-    aperture.OSS_Version = '8.4'
+
     aperture_dict[AperName] = aperture
 
 # sort SIAF entries in the order of the aperture definition file
@@ -154,6 +155,29 @@ for AperName in aperture_name_list:
                                                (aperture_dict[AperName].V3Ref - ddc_v3)**2)
     aperture_dict[AperName].DDCName = _ddc_apername_mapping[ddc_siaf_aperture_names[np.argmin(
         separation_tel_from_ddc_aperture)]]
+
+# fourth pass: OSS Version
+for AperName in aperture_name_list:
+    aperture = aperture_dict[AperName]
+
+    if AperName in oss_version_parameters['AperName']:
+        print(f"OSS Filtering by aperture {AperName}")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
+        if aperture_dict[AperName].DDCName in oss['DDCName']:
+            print(f"OSS Filtering by DDCName {aperture_dict[AperName].DDCName}")
+            oss = oss[oss['DDCName'] == aperture_dict[AperName].DDCName]
+    else:
+        print("OSS Using default aperture")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
+
+    if len(oss) == 1:
+        oss = oss["OSS_Version"][0]
+        print(f"OSS: {oss}")
+    else:
+        print(f"OSS:")
+        print(oss)
+
+    aperture.OSS_Version = oss
 
 ######################################
 # SIAF content generation finished

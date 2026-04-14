@@ -81,6 +81,8 @@ if 0:
 
 siaf_alignment_parameters = iando.read.read_siaf_alignment_parameters(instrument)
 
+oss_version_parameters = iando.read.read_siaf_oss_version(instrument)
+
 aperture_dict = OrderedDict()
 aperture_name_list = siaf_aperture_definitions['AperName'].tolist()
 
@@ -97,7 +99,6 @@ for AperName in aperture_name_list:
     aperture.DDCName = 'not set'
     aperture.Comment = None
     aperture.UseAfterDate = '2014-01-01'
-    aperture.OSS_Version = '8.4'
 
     if AperName not in ['J-FRAME', 'V-FRAME']:
 
@@ -181,6 +182,29 @@ for AperName in aperture_name_list:
             aperture.Sci2IdlX11 = 0.
 
         aperture_dict[AperName] = aperture
+
+# third pass: OSS Version
+for AperName in aperture_name_list:
+    aperture = aperture_dict[AperName]
+
+    if AperName in oss_version_parameters['AperName']:
+        print(f"OSS Filtering by aperture {AperName}")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
+        if aperture_dict[AperName].DDCName in oss['DDCName']:
+            print(f"OSS Filtering by DDCName {aperture_dict[AperName].DDCName}")
+            oss = oss[oss['DDCName'] == aperture_dict[AperName].DDCName]
+    else:
+        print("OSS Using default aperture")
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
+
+    if len(oss) == 1:
+        oss = oss["OSS_Version"][0]
+        print(f"OSS: {oss}")
+    else:
+        print(f"OSS:")
+        print(oss)
+
+    aperture.OSS_Version = oss
 
 # Set attributes for the special cases of the J-FRAME and V-FRAME apertures
 

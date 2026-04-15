@@ -638,7 +638,7 @@ def read_siaf_oss_version(instrument=None):
     
     """
     filename = os.path.join(JWST_SOURCE_DATA_ROOT, "OSS_VERSION_TABLE.txt")
-    table = ascii.read(filename, format="fixed_width", header_rows=["name"])
+    table = ascii.read(filename, format="fixed_width", header_rows=["name", "dtype"])
 
     if instrument is not None:
         table = table[table["InstrName"] == instrument.upper()]

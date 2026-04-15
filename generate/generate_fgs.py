@@ -190,9 +190,6 @@ for AperName in aperture_name_list:
     if AperName in oss_version_parameters['AperName']:
         print(f"OSS Filtering by aperture {AperName}")
         oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
-        if aperture_dict[AperName].DDCName in oss['DDCName']:
-            print(f"OSS Filtering by DDCName {aperture_dict[AperName].DDCName}")
-            oss = oss[oss['DDCName'] == aperture_dict[AperName].DDCName]
     else:
         print("OSS Using default aperture")
         oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']

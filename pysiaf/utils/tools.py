@@ -6,6 +6,7 @@ Authors
 
 """
 from __future__ import absolute_import, print_function, division
+import ast
 import copy
 import math
 from math import sin, cos, atan2, degrees, radians
@@ -812,6 +813,38 @@ def match_v2v3(aperture_1, aperture_2, verbose=False, match_v2_only=False):
         print()
 
     return new_aperture_2
+
+
+def oss_update_aperture(aperture, changes, oss_version):
+    """
+    Updates an aperture in order to allow expanding a single aperture into multiple rows
+    with different OSS version information (and other changes, custom by case).
+
+    Parameters
+    ----------
+    aperture : pySIAF Aperture
+        The aperture to update
+    changes : str
+        A string that can be evaluated as a dictionary of changes
+    oss_version : str
+        The OSS version to apply to the aperture
+    
+    Returns
+    -------
+    aperture : pySIAF Aperture
+        Updated aperture
+    """
+    changes_dict = ast.literal_eval(changes)
+    for attribute in changes_dict:
+        (value, value_type) = changes_dict[attribute]
+        if value_type == "float":
+            setattr(aperture, attribute, float(value))
+        elif value_type == "str":
+            setattr(aperture, attribute, str(value))
+        else:
+            setattr(aperture, attribute, value)
+    aperture.OSS_Version = oss_version
+    return aperture
 
 
 def is_ipython():

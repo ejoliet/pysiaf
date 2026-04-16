@@ -24,6 +24,7 @@ from openpyxl.styles import Alignment
 
 from ..constants import _JWST_TEMPORARY_ROOT
 from ..aperture import PRD_REQUIRED_ATTRIBUTES_ORDERED, SIAF_XML_FIELD_FORMAT, FLOAT_ATTRIBUTES
+from ..utils.tools import oss_update_aperture
 from .. import __version__
 
 # dictionary used to set field precision in SIAF.XML
@@ -168,17 +169,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                 oss_version = aperture.OSS_Version
                 if isinstance(oss_version, Table):
                     for row in oss_version:
-                        changes_dict = ast.literal_eval(row['Changes'])
-                        for attribute in changes_dict:
-                            (value, value_type) = changes_dict[attribute]
-                            print(f"{aperture_name}: Setting {attribute} to {value} ({value_type})")
-                            if value_type == "float":
-                                setattr(aperture, attribute, float(value))
-                            elif value_type == "str":
-                                setattr(aperture, attribute, str(value))
-                            else:
-                                setattr(aperture, attribute, value)
-                        aperture.OSS_Version = row['OSS_Version']
+                        aperture = oss_update_aperture(aperture, row['Changes'], row['OSS_Version'])
                         write_xml_aperture(aperture_collection, aperture_name, ET, root)
                     aperture.OSS_Version = oss_version
                 else:
@@ -240,17 +231,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
 
                 if isinstance(oss_version, Table):
                     for table_row in oss_version:
-                        changes_dict = ast.literal_eval(table_row['Changes'])
-                        for attribute in changes_dict:
-                            (value, value_type) = changes_dict[attribute]
-                            print(f"{aperture_name}: Setting {attribute} to {value} ({value_type})")
-                            if value_type == "float":
-                                setattr(aperture, attribute, float(value))
-                            elif value_type == "str":
-                                setattr(aperture, attribute, str(value))
-                            else:
-                                setattr(aperture, attribute, value)
-                        aperture.OSS_Version = table_row['OSS_Version']
+                        aperture = oss_update_aperture(aperture, table_row['Changes'], table_row['OSS_Version'])
                         for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
                             col = j + 1
                             cell = ws1.cell(column=col, row=row, value="{}".
@@ -292,17 +273,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
 
                 if isinstance(oss_version, Table):
                     for oss_row in oss_version:
-                        changes_dict = ast.literal_eval(oss_row['Changes'])
-                        for attribute in changes_dict:
-                            (value, value_type) = changes_dict[attribute]
-                            print(f"{aper_name}: Setting {attribute} to {value} ({value_type})")
-                            if value_type == "float":
-                                setattr(aperture, attribute, float(value))
-                            elif value_type == "str":
-                                setattr(aperture, attribute, str(value))
-                            else:
-                                setattr(aperture, attribute, value)
-                        aperture.OSS_Version = oss_row['OSS_Version']
+                        aperture = oss_update_aperture(aperture, oss_row['Changes'], oss_row['OSS_Version'])
                         for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
                             table_data[attribute_name].append(getattr(aperture, attribute_name))
                     aperture.OSS_Version = oss_version

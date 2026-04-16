@@ -64,7 +64,7 @@ data = [
 all_data.append(data)
 data = [
     "NIRCAM",
-    "NRCA3_SUB64P",
+    "NRCA4_SUB64P",
     "11.1",
     None
 ]

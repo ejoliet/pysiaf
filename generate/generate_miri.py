@@ -31,6 +31,7 @@ from pysiaf.constants import JWST_SOURCE_DATA_ROOT, JWST_TEMPORARY_DATA_ROOT, \
 from pysiaf.tests import test_miri
 from pysiaf.utils import compare
 from pysiaf.utils import polynomial
+from pysiaf.utils import tools
 
 import generate_reference_files
 
@@ -636,22 +637,7 @@ aperture_dict = OrderedDict(sorted(aperture_dict.items(), key=lambda t: aperture
 # third pass: OSS Version
 for AperName in aperture_name_list:
     aperture = aperture_dict[AperName]
-
-    if AperName in oss_version_parameters['AperName']:
-        print(f"OSS Filtering by aperture {AperName}")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
-    else:
-        print("OSS Using default aperture")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
-
-    if len(oss) == 1:
-        oss = oss["OSS_Version"][0]
-        print(f"OSS: {oss}")
-    else:
-        print(f"OSS:")
-        print(oss)
-
-    aperture.OSS_Version = oss
+    aperture.OSS_Version = tools.select_oss_version(AperName, oss_version_parameters)
 
 # fourth pass to set DDCNames apertures, which depend on other apertures
 ddc_siaf_aperture_names = np.array([key for key in ddc_apername_mapping.keys()])

@@ -186,22 +186,7 @@ for AperName in aperture_name_list:
 # third pass: OSS Version
 for AperName in aperture_name_list:
     aperture = aperture_dict[AperName]
-
-    if AperName in oss_version_parameters['AperName']:
-        print(f"OSS Filtering by aperture {AperName}")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
-    else:
-        print("OSS Using default aperture")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
-
-    if len(oss) == 1:
-        oss = oss["OSS_Version"][0]
-        print(f"OSS: {oss}")
-    else:
-        print(f"OSS:")
-        print(oss)
-
-    aperture.OSS_Version = oss
+    aperture.OSS_Version = tools.select_oss_version(AperName, oss_version_parameters)
 
 # Set attributes for the special cases of the J-FRAME and V-FRAME apertures
 

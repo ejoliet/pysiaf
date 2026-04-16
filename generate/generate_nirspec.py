@@ -33,7 +33,7 @@ import numpy as np
 import pysiaf
 from pysiaf import iando
 from pysiaf.aperture import DISTORTION_ATTRIBUTES
-from pysiaf.utils import compare, polynomial
+from pysiaf.utils import compare, polynomial, tools
 from pysiaf.constants import JWST_SOURCE_DATA_ROOT, JWST_TEMPORARY_DATA_ROOT, REPORTS_ROOT, \
     V3_TO_YAN_OFFSET_DEG, JWST_DELIVERY_DATA_ROOT, JWST_PRD_DATA_ROOT
 import generate_reference_files
@@ -911,22 +911,7 @@ for AperName in aperture_name_list:
 # fourth pass: OSS Version
 for AperName in aperture_name_list:
     aperture = aperture_dict[AperName]
-
-    if AperName in oss_version_parameters['AperName']:
-        print(f"OSS Filtering by aperture {AperName}")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
-    else:
-        print("OSS Using default aperture")
-        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
-
-    if len(oss) == 1:
-        oss = oss["OSS_Version"][0]
-        print(f"OSS: {oss}")
-    else:
-        print(f"OSS:")
-        print(oss)
-
-    aperture.OSS_Version = oss
+    aperture.OSS_Version = tools.select_oss_version(AperName, oss_version_parameters)
 
 ######################################
 # SIAF content generation finished

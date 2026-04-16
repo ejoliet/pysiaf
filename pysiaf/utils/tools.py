@@ -847,6 +847,33 @@ def oss_update_aperture(aperture, changes, oss_version):
     return aperture
 
 
+def select_oss_version(AperName, oss_version_parameters):
+    """
+    Given an aperture name, find the appropriate OSS version. This may be a table, in
+    which case it will result in multiple entries at the write stage.
+    
+    Parameters
+    ----------
+    AperName : str
+        Aperture to search for
+    oss_version_parameters : astropy Table
+        Table of OSS Version information for the instrument being generated.
+    
+    Returns
+    -------
+    str or astropy Table
+        The matching entry/entries
+    """
+    if AperName in oss_version_parameters['AperName']:
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == AperName]
+    else:
+        oss = oss_version_parameters[oss_version_parameters['AperName'] == '*']
+
+    if len(oss) == 1:
+        return oss["OSS_Version"][0]
+
+    return oss
+
 def is_ipython():
     """Function that returns True if the user is in an ipython
     session and False if they are not

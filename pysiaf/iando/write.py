@@ -180,6 +180,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                                 setattr(aperture, attribute, value)
                         aperture.OSS_Version = row['OSS_Version']
                         write_xml_aperture(aperture_collection, aperture_name, ET, root)
+                    aperture.OSS_Version = oss_version
                 else:
                     write_xml_aperture(aperture_collection, aperture_name, ET, root)
 
@@ -238,8 +239,8 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                 oss_version = aperture.OSS_Version
 
                 if isinstance(oss_version, Table):
-                    for row in oss_version:
-                        changes_dict = ast.literal_eval(row['Changes'])
+                    for table_row in oss_version:
+                        changes_dict = ast.literal_eval(table_row['Changes'])
                         for attribute in changes_dict:
                             (value, value_type) = changes_dict[attribute]
                             print(f"{aperture_name}: Setting {attribute} to {value} ({value_type})")
@@ -249,7 +250,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                                 setattr(aperture, attribute, str(value))
                             else:
                                 setattr(aperture, attribute, value)
-                        aperture.OSS_Version = row['OSS_Version']
+                        aperture.OSS_Version = table_row['OSS_Version']
                         for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
                             col = j + 1
                             cell = ws1.cell(column=col, row=row, value="{}".
@@ -258,6 +259,7 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                                     split():
                                 cell.alignment = Alignment(horizontal='right')
                         row += 1
+                    aperture.OSS_Version = oss_version
                 else:
                     for j, attribute_name in enumerate(PRD_REQUIRED_ATTRIBUTES_ORDERED):
                         col = j + 1
@@ -279,8 +281,9 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
         else:
             table = Table()
 
+            table_data = {}
             for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
-                table.add_column(Column(name=attribute_name))
+                table_data[attribute_name] = []
 
             for aper_name in aperture_names:
                 aperture = aperture_collection.apertures[aper_name]
@@ -300,16 +303,16 @@ def write_jwst_siaf(aperture_collection, filename=None, basepath=None, label=Non
                             else:
                                 setattr(aperture, attribute, value)
                         aperture.OSS_Version = oss_row['OSS_Version']
-                        data = []
                         for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
-                            data.append(getattr(aperture, attribute_name))
-                        table.add_row(data)
+                            table_data[attribute_name].append(getattr(aperture, attribute_name))
+                    aperture.OSS_Version = oss_version
                 else:
                     data = []
                     for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
-                        data.append(getattr(aperture, attribute_name))
-                    table.add_row(data)
-            table.write(out_filename, format=file_format)
+                        table_data[attribute_name].append(getattr(aperture, attribute_name))
+            for attribute_name in PRD_REQUIRED_ATTRIBUTES_ORDERED:
+                table.add_column(Column(name=attribute_name, data=table_data[attribute_name]))
+            table.write(out_filename, format=file_format, overwrite=True)
             if verbose:
                 print('Wrote Siaf to {} file {}'.format(file_format, out_filename))
 

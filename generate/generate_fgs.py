@@ -242,7 +242,7 @@ if emulate_delivery:
 
     # write the SIAF files to disk
     filenames = pysiaf.iando.write.write_jwst_siaf(aperture_collection, basepath=pre_delivery_dir,
-                                                   file_format=['xml', 'xlsx']) #, label='update'
+                                                   file_format=['xml', 'xlsx', 'csv']) #, label='update'
 
     pre_delivery_siaf = pysiaf.Siaf(instrument, basepath=pre_delivery_dir)
 

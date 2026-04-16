@@ -524,7 +524,7 @@ for AperName in aperture_name_list:
 
 aperture_collection = pysiaf.ApertureCollection(aperture_dict)
 
-emulate_delivery = False
+emulate_delivery = True
 
 if emulate_delivery:
     pre_delivery_dir = os.path.join(JWST_DELIVERY_DATA_ROOT, instrument)
@@ -533,7 +533,7 @@ if emulate_delivery:
 
     # write the SIAF files to disk
     filenames = pysiaf.iando.write.write_jwst_siaf(
-        aperture_collection, basepath=pre_delivery_dir, file_format=["xml", "xlsx"]
+        aperture_collection, basepath=pre_delivery_dir, file_format=["xml", "xlsx", "csv"]
     )
 
     pre_delivery_siaf = pysiaf.Siaf(instrument, basepath=pre_delivery_dir)

@@ -763,8 +763,6 @@ for AperName in aperture_name_list:
     aperture.Comment = None
     aperture.UseAfterDate = '2014-01-01'
 
-    aperture.OSS_Version = oss
-
     if aperture.AperType not in ['TRANSFORM']:
         aperture.AperShape = siaf_detector_parameters['AperShape'][0]
 
@@ -945,7 +943,7 @@ if emulate_delivery:
 
     # write the SIAF files to disk
     filenames = pysiaf.iando.write.write_jwst_siaf(aperture_collection, basepath=pre_delivery_dir,
-                                                   file_format=['xml', 'xlsx'])
+                                                   file_format=['xml', 'xlsx', 'csv'])
 
     pre_delivery_siaf = pysiaf.Siaf(instrument, basepath=pre_delivery_dir)
 

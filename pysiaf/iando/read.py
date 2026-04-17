@@ -638,9 +638,12 @@ def read_siaf_oss_version(instrument=None):
     
     """
     filename = os.path.join(JWST_SOURCE_DATA_ROOT, "OSS_VERSION_TABLE.txt")
-    table = ascii.read(filename, format="fixed_width", header_rows=["name", "dtype"])
+    try:
+        table = ascii.read(filename, format="fixed_width", header_rows=["name", "dtype"])
+    except Exception as e:
+        print(f"ERROR opening OSS Version data file: {e}")
 
-    if instrument is not None:
+    if instrument:
         table = table[table["InstrName"] == instrument.upper()]
 
     return table
